@@ -17,7 +17,7 @@ DELIVERY_TIMEOUT_SECONDS = 5.0
 
 async def register_webhook(
     db,
-    user_id: UUID,
+    user_id: str,
     url: str,
 ) -> Webhook:
     """
@@ -45,18 +45,18 @@ async def notify_review_finished(db, review_id: UUID) -> None:
     the review's outcome.
     """
     try:
-        stmt = select(Review).where(Review.id == review_id)
-        result = await db.execute(stmt)
+        review_stmt = select(Review).where(Review.id == review_id)
+        result = await db.execute(review_stmt)
         review = result.scalars().first()
         if not review or review.status not in FINISHED_STATUSES:
             return
 
-        stmt = (
+        url_stmt = (
             select(Webhook.url)
             .join(Profile, Profile.user_id == Webhook.user_id)
             .where(Profile.id == review.profile_id)
         )
-        result = await db.execute(stmt)
+        result = await db.execute(url_stmt)
         urls = result.scalars().all()
         if not urls:
             return
