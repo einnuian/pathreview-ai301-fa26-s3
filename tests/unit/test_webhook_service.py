@@ -66,6 +66,17 @@ class TestNotifyReviewFinished:
         assert delivered[0]["status_code"] == 200
 
     @pytest.mark.asyncio
+    async def test_review_is_reloaded_from_db(self):
+        """The review query refreshes cached state so the payload matches GET."""
+        review = _review("complete")
+        session = _session(review, [])
+
+        await notify_review_finished(session, review.id)
+
+        review_stmt = session.execute.await_args_list[0].args[0]
+        assert review_stmt.get_execution_options().get("populate_existing") is True
+
+    @pytest.mark.asyncio
     @pytest.mark.parametrize("status", ["pending", "processing"])
     async def test_unfinished_review_is_not_posted(self, httpserver, status):
         """A review that isn't finished sends nothing and skips the URL lookup."""

@@ -45,7 +45,11 @@ async def notify_review_finished(db, review_id: UUID) -> None:
     the review's outcome.
     """
     try:
-        review_stmt = select(Review).where(Review.id == review_id)
+        # Reload from the DB: process_review's session doesn't expire on commit,
+        # so the cached object can hold values that differ from GET /reviews/{id}.
+        review_stmt = (
+            select(Review).where(Review.id == review_id).execution_options(populate_existing=True)
+        )
         result = await db.execute(review_stmt)
         review = result.scalars().first()
         if not review or review.status not in FINISHED_STATUSES:
